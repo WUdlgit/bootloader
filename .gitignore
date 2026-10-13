@@ -1,0 +1,31 @@
+# Build products and generated analysis data
+**/build/
+**/.cache/
+**/.codebase-memory/
+**/compile_commands.json
+**/NUL
+*.o
+*.d
+*.elf
+*.hex
+*.bin
+*.map
+
+# Local editor state and diagnostics
+**/.vscode/
+**/.vs/
+*.log
+*.tmp
+
+# Local Obsidian export and publishing helpers
+/obsidian-*
+/obsidian-export-*.json
+/check-obsidian-*.ps1
+/publish-obsidian-*.ps1
+
+# Local credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
