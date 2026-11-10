@@ -27,32 +27,65 @@ static bool header_is_valid(const magic_header_t *info)
 }
 
 /* 上电和启动命令必须同时检查描述头、向量及整包固件 */
-bool magic_header_validate(void)
+app_check_result_t magic_header_validate_checked(app_check_detail_t *detail)
 {
     const magic_header_t *info = (const magic_header_t *)INFO_ADDRESS;
+    if (detail != NULL)
+        *detail = (app_check_detail_t){0};
+    if (!header_is_valid(info))
+        return APP_CHECK_HEADER_VERIFY;
+    if (!app_vector_is_valid(info->length))
+        return APP_CHECK_VECTOR;
+    uint32_t actual = crc32((const uint8_t *)APP_ADDRESS, info->length);
+    if (detail != NULL)
+    {
+        detail->expected_crc = info->crc;
+        detail->actual_crc = actual;
+    }
+    return actual == info->crc ? APP_CHECK_OK : APP_CHECK_IMAGE_CRC;
+}
 
-    if (!header_is_valid(info) || !app_vector_is_valid(info->length))
-        return false;
-    return crc32((const uint8_t *)APP_ADDRESS, info->length) == info->crc;
+bool magic_header_validate(void)
+{
+    return magic_header_validate_checked(NULL) == APP_CHECK_OK;
+}
+
+app_check_result_t magic_header_save_checked(uint32_t length, uint32_t crc,
+                                             app_check_detail_t *detail)
+{
+    if (detail != NULL)
+        *detail = (app_check_detail_t){0};
+    if (length < 8 || length > APP_MAX_LENGTH)
+        return APP_CHECK_LENGTH;
+    if (!app_vector_is_valid(length))
+        return APP_CHECK_VECTOR;
+    uint32_t actual = crc32((const uint8_t *)APP_ADDRESS, length);
+    if (detail != NULL)
+    {
+        detail->expected_crc = crc;
+        detail->actual_crc = actual;
+    }
+    if (actual != crc)
+        return APP_CHECK_IMAGE_CRC;
+
+    magic_header_t info = {MAGIC_HEADER_MAGIC, length, crc, 0};
+    info.info_crc = crc32((const uint8_t *)&info, offsetof(magic_header_t, info_crc));
+    const uint32_t offsets[] = {4, 8, 12, 0};
+    const uint32_t values[] = {info.length, info.crc, info.info_crc, info.magic};
+    for (uint32_t i = 0; i < 4; i++)
+    {
+        if (!stm32_flash_program_word(INFO_ADDRESS + offsets[i], values[i]))
+        {
+            if (detail != NULL)
+                detail->field_offset = offsets[i];
+            return APP_CHECK_HEADER_WRITE;
+        }
+    }
+    return header_is_valid((const magic_header_t *)INFO_ADDRESS) ?
+           APP_CHECK_OK : APP_CHECK_HEADER_VERIFY;
 }
 
 bool magic_header_save(uint32_t length, uint32_t crc)
 {
-    if (length < 8 || length > APP_MAX_LENGTH || !app_vector_is_valid(length))
-        return false;
-    /* 提交描述头前，在这里统一计算一次整包 CRC */
-    if (crc32((const uint8_t *)APP_ADDRESS, length) != crc)
-        return false;
-
-    magic_header_t info = {MAGIC_HEADER_MAGIC, length, crc, 0};
-    info.info_crc = crc32((const uint8_t *)&info, offsetof(magic_header_t, info_crc));
-
-    /* 先写长度和两份校验值，最后写 magic，半途失败不会留下有效描述头 */
-    if (!stm32_flash_program_word(INFO_ADDRESS + 4, info.length) ||
-        !stm32_flash_program_word(INFO_ADDRESS + 8, info.crc) ||
-        !stm32_flash_program_word(INFO_ADDRESS + 12, info.info_crc) ||
-        !stm32_flash_program_word(INFO_ADDRESS, info.magic))
-        return false;
-
-    return header_is_valid((const magic_header_t *)INFO_ADDRESS);
+    return magic_header_save_checked(length, crc, NULL) == APP_CHECK_OK;
 }

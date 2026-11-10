@@ -156,5 +156,43 @@ const { crc32 } = require('node:zlib');
         assert.equal(c.magic_header_save(1025, crc), 0);
         assert.equal(c.magic_header_validate(), 0);
     });
+    test('detailed length and vector errors', () => {
+        const detail = BUF + 0x100000;
+        assert.equal(c.magic_header_save_checked(7, 0, detail), 1);
+        check(c.stm32_flash_erase(1025));
+        assert.equal(c.magic_header_save_checked(1025, 0, detail), 2);
+    });
+    test('detailed CRC includes expected and actual', () => {
+        const detail = BUF + 0x100000;
+        const crc = makeImage(1025);
+        writeImage(1025);
+        assert.equal(c.magic_header_save_checked(1025, (crc ^ 1) >>> 0, detail), 3);
+        assert.equal(view.getUint32(detail, true), (crc ^ 1) >>> 0);
+        assert.equal(view.getUint32(detail + 4, true), crc);
+    });
+    for (const [operation, offset] of [[0, 4], [1, 8], [2, 12], [3, 0]]) {
+        test('detailed header field failure ' + offset, () => {
+            const detail = BUF + 0x100000;
+            const crc = makeImage(1025);
+            writeImage(1025);
+            c.test_fail_after(operation);
+            assert.equal(c.magic_header_save_checked(1025, crc, detail), 4);
+            assert.equal(view.getUint32(detail + 8, true), offset);
+            assert.equal(c.magic_header_validate(), 0);
+        });
+    }
+    test('detailed startup distinguishes header, vector and image CRC', () => {
+        const detail = BUF + 0x100000;
+        assert.equal(c.magic_header_validate_checked(detail), 5);
+        const crc = makeImage(1025);
+        writeImage(1025);
+        check(c.magic_header_save(1025, crc));
+        assert.equal(c.magic_header_validate_checked(detail), 0);
+        memory[APP] ^= 1;
+        assert.equal(c.magic_header_validate_checked(detail), 2);
+        memory[APP] ^= 1;
+        memory[APP + 100] ^= 1;
+        assert.equal(c.magic_header_validate_checked(detail), 3);
+    });
     console.log(`${cases} firmware host cases passed (Flash API model; no board evidence)`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

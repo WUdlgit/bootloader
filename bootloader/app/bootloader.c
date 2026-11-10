@@ -112,6 +112,36 @@ static void discard_input(void)
 }
 
 /* 一次升级：接收头、擦除、逐块写入、整包校验，最后保存描述头 */
+static void report_app_error(app_check_result_t result, const app_check_detail_t *detail)
+{
+    switch (result)
+    {
+    case APP_CHECK_LENGTH:
+        bl_usart_printf("[BOOT] ERROR length\r\n");
+        break;
+    case APP_CHECK_VECTOR:
+        bl_usart_printf("[BOOT] ERROR vector\r\n");
+        break;
+    case APP_CHECK_IMAGE_CRC:
+        bl_usart_printf("[BOOT] ERROR image_crc expected=%08lX actual=%08lX\r\n",
+                        (unsigned long)detail->expected_crc, (unsigned long)detail->actual_crc);
+        break;
+    case APP_CHECK_HEADER_WRITE:
+    {
+        const char *field = detail->field_offset == 4 ? "length" :
+                            detail->field_offset == 8 ? "crc" :
+                            detail->field_offset == 12 ? "info_crc" : "magic";
+        bl_usart_printf("[BOOT] ERROR header_write field=%s\r\n", field);
+        break;
+    }
+    case APP_CHECK_HEADER_VERIFY:
+        bl_usart_printf("[BOOT] ERROR header_verify\r\n");
+        break;
+    default:
+        break;
+    }
+}
+
 static bool receive_firmware(void)
 {
     char line[80];
@@ -157,9 +187,11 @@ static bool receive_firmware(void)
         bl_usart_printf("[BOOT] ACK %lu\r\n", (unsigned long)completed_length);
     }
 
-    if (!magic_header_save(firmware_length, firmware_crc))
+    app_check_detail_t detail;
+    app_check_result_t result = magic_header_save_checked(firmware_length, firmware_crc, &detail);
+    if (result != APP_CHECK_OK)
     {
-        bl_usart_printf("[BOOT] ERROR verify_or_commit\r\n");
+        report_app_error(result, &detail);
         return false;
     }
     bl_usart_printf("[BOOT] DONE %lu %08lX\r\n",
@@ -170,13 +202,14 @@ static bool receive_firmware(void)
 /* 启动前重新校验 App，再清理 Bootloader 使用的中断和串口 */
 static void start_app(void)
 {
-    if (!magic_header_validate())
+    app_check_detail_t detail;
+    app_check_result_t result = magic_header_validate_checked(&detail);
+    if (result != APP_CHECK_OK)
     {
-        bl_usart_printf("[BOOT] ERROR invalid_app\r\n");
+        report_app_error(result, &detail);
         return;
     }
 
-    // 更新后重新读取向量，不能使用升级前保存的栈和入口
     uint32_t app_stack = *(const uint32_t *)APP_ADDRESS;
     uint32_t app_entry = *(const uint32_t *)(APP_ADDRESS + 4);
     bl_usart_printf("[BOOT] BOOTING\r\n");
