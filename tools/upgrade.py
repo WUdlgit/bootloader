@@ -72,8 +72,11 @@ def upgrade(port, image, boot=False, progress=print):
 
     read_response(port, f"[BOOT] DONE {len(image)} {crc:08X}", 10)
     elapsed = time.monotonic() - start
-    progress(f"Verified {len(image)} bytes, CRC32={crc:08X}, {elapsed:.3f} s, "
-             f"{len(image) / elapsed:.1f} bytes/s (erase + transfer + verification)")
+    if elapsed > 0:
+        progress(f"Verified {len(image)} bytes, CRC32={crc:08X}, {elapsed:.3f} s, "
+                 f"{len(image) / elapsed:.1f} bytes/s (erase + transfer + verification)")
+    else:
+        progress(f"Verified {len(image)} bytes, CRC32={crc:08X}, elapsed time below clock resolution")
     if boot:
         write_data(port, b"g")
         read_response(port, "[BOOT] BOOTING", 10)
