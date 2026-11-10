@@ -1,5 +1,5 @@
 /* STM32F407VETx 链接脚本 (GNU ld)
- * Test App: 256KB @ 0x08040000 (sectors 6-7)
+ * Test App: 448KB @ 0x08010000 (sectors 6-7)
  * RAM  : 128KB @ 0x20000000
  * CCM  :  64KB @ 0x10000000 (本工程未使用)
  */
@@ -9,7 +9,7 @@ _Min_Stack_Size = 0x400;
 
 MEMORY
 {
-  FLASH (rx)      : ORIGIN = 0x08040000, LENGTH = 256K
+  FLASH (rx)      : ORIGIN = 0x08010000, LENGTH = 448K
   RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 128K
   CCMRAM (xrw)    : ORIGIN = 0x10000000, LENGTH = 64K
 }

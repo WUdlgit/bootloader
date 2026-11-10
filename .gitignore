@@ -10,6 +10,8 @@
 *.hex
 *.bin
 *.map
+**/__pycache__/
+/work/board-tools/
 
 # Local editor state and diagnostics
 **/.vscode/
@@ -29,3 +31,8 @@
 !.env.example
 *.pem
 *.key
+
+# Local verification artifacts, backups and generated readers
+/outputs/
+/work/
+/.archify/

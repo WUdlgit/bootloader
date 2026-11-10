@@ -1,7 +1,7 @@
-/* STM32F407VETx é“¾æ¥è„šæœ¬ (GNU ld)
+/* STM32F407VETx Á´½Ó½Å±¾ (GNU ld)
  * Flash: 512KB @ 0x08000000
  * RAM  : 128KB @ 0x20000000
- * CCM  :  64KB @ 0x10000000 (æœ¬å·¥ç¨‹æœªä½¿ç”¨)
+ * CCM  :  64KB @ 0x10000000 (±¾¹¤³ÌÎ´Ê¹ÓÃ)
  */
 
 _Min_Heap_Size = 0x200;
@@ -9,12 +9,13 @@ _Min_Stack_Size = 0x400;
 
 MEMORY
 {
-  FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 256K
+  /* 0x0800C000 ¿ªÊ¼µÄÉÈÇø 3 ¶ÀÁ¢±£´æ¹Ì¼şÃèÊöÍ·£¬´úÂë²»ÄÜÕ¼ÓÃ */
+  FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 48K
   RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 128K
   CCMRAM (xrw)    : ORIGIN = 0x10000000, LENGTH = 64K
 }
 
-/* æ ˆé¡¶æŒ‡å‘ RAM æœ€é«˜åœ°å€ï¼Œå‘ä¸‹ç”Ÿé•¿ */
+/* Õ»¶¥Ö¸Ïò RAM ×î¸ßµØÖ·£¬ÏòÏÂÉú³¤ */
 _estack = ORIGIN(RAM) + LENGTH(RAM);
 
 SECTIONS
@@ -85,7 +86,7 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   } >FLASH
 
-  /* .data åˆå§‹å€¼å­˜æ”¾åœ¨ Flashï¼Œè¿è¡Œæ—¶æ‹·è´åˆ° RAM */
+  /* .data ³õÊ¼Öµ´æ·ÅÔÚ Flash£¬ÔËĞĞÊ±¿½±´µ½ RAM */
   _sidata = LOADADDR(.data);
 
   .data :

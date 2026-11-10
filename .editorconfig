@@ -1,0 +1,19 @@
+# Project text conventions; C indentation matches bootloader/.clang-format.
+root = true
+
+[*]
+# GBK is configured in VS Code settings; EditorConfig has no GBK charset value.
+end_of_line = lf
+indent_style = space
+indent_size = 4
+tab_width = 4
+insert_final_newline = true
+
+# Make recipes require a real Tab character.
+[Makefile]
+indent_style = tab
+indent_size = tab
+
+# Trim trailing whitespace in source files; preserve Markdown hard breaks.
+[*.{c,h,cpp,hpp,s,S,ld}]
+trim_trailing_whitespace = true

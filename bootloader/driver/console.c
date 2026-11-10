@@ -1,4 +1,3 @@
-#include <stdint.h>
 #include "stm32f4xx.h"
 #include "console.h"
 
@@ -35,17 +34,4 @@ void console_init(void)
 {
     console_io_init();
     console_usart_init();
-}
-
-/* Blocking log output only. Receive processing is left for the protocol stage. */
-void console_write(const char str[])
-{
-    while (*str != '\0')
-    {
-        while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET)
-            ;
-        USART_SendData(USART1, (uint8_t)*str++);
-    }
-    while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET)
-        ;
 }

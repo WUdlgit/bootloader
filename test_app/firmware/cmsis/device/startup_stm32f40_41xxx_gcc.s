@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
  * @file    startup_stm32f40_41xxx_gcc.s
- * @brief   STM32F40xxx/41xxx å‘é‡è¡¨ä¸å¤ä½å…¥å£ (GNU æ±‡ç¼–è¯­æ³•)
- *          ä»…ç”¨äº GNU Arm Toolchain ç¼–è¯‘; åŸ Keil å¯åŠ¨æ–‡ä»¶ä¸å—å½±å“
+ * @brief   STM32F40xxx/41xxx ÏòÁ¿±íÓë¸´Î»Èë¿Ú (GNU »ã±àÓï·¨)
+ *          ½öÓÃÓÚ GNU Arm Toolchain ±àÒë; Ô­ Keil Æô¶¯ÎÄ¼ş²»ÊÜÓ°Ïì
  ******************************************************************************
  */
 
@@ -14,7 +14,7 @@
 .global  g_pfnVectors
 .global  Default_Handler
 
-/* .data æ®µåˆå§‹åŒ–æ‰€éœ€çš„é“¾æ¥è„šæœ¬ç¬¦å· */
+/* .data ¶Î³õÊ¼»¯ËùĞèµÄÁ´½Ó½Å±¾·ûºÅ */
 .word  _sidata
 .word  _sdata
 .word  _edata
@@ -25,9 +25,9 @@
   .weak  Reset_Handler
   .type  Reset_Handler, %function
 Reset_Handler:
-  ldr   sp, =_estack          /* è®¾ç½®æ ˆæŒ‡é’ˆ */
+  ldr   sp, =_estack          /* ÉèÖÃÕ»Ö¸Õë */
 
-  /* æŠŠ .data çš„åˆå§‹å€¼ä» Flash æ‹·è´åˆ° RAM */
+  /* °Ñ .data µÄ³õÊ¼Öµ´Ó Flash ¿½±´µ½ RAM */
   movs  r1, #0
   b     LoopCopyDataInit
 
@@ -44,7 +44,7 @@ LoopCopyDataInit:
   cmp   r2, r3
   bcc   CopyDataInit
 
-  /* .bss æ®µæ¸…é›¶ */
+  /* .bss ¶ÎÇåÁã */
   ldr   r2, =_sbss
   b     LoopFillZerobss
 
@@ -57,27 +57,27 @@ LoopFillZerobss:
   cmp   r2, r3
   bcc   FillZerobss
 
-  /* è°ƒç”¨ SystemInit (æ¥è‡ª system_stm32f4xx.c) */
+  /* µ÷ÓÃ SystemInit (À´×Ô system_stm32f4xx.c) */
   bl    SystemInit
-  /* è¿›å…¥ main */
+  /* ½øÈë main */
   bl    main
   bx    lr
 
 .size  Reset_Handler, .-Reset_Handler
 
-/* é»˜è®¤ä¸­æ–­å¤„ç†: æ­»å¾ªç¯, ä¾¿äºè°ƒè¯•æ—¶å‘ç°é—®é¢˜ */
+/* Ä¬ÈÏÖĞ¶Ï´¦Àí: ËÀÑ­»·, ±ãÓÚµ÷ÊÔÊ±·¢ÏÖÎÊÌâ */
   .section  .text.Default_Handler,"ax",%progbits
 Default_Handler:
   b  .
   .size  Default_Handler, .-Default_Handler
 
-/* å®: æŠŠæ¯ä¸ªä¸­æ–­å‘é‡å®šä¹‰ä¸ºå¼±å¼•ç”¨, é»˜è®¤æŒ‡å‘ Default_Handler */
+/* ºê: °ÑÃ¿¸öÖĞ¶ÏÏòÁ¿¶¨ÒåÎªÈõÒıÓÃ, Ä¬ÈÏÖ¸Ïò Default_Handler */
 .macro  def_irq_vector  handler
   .weak  \handler
   .set   \handler, Default_Handler
 .endm
 
-/* ç³»ç»Ÿå¼‚å¸¸ */
+/* ÏµÍ³Òì³£ */
 def_irq_vector  NMI_Handler
 def_irq_vector  HardFault_Handler
 def_irq_vector  MemManage_Handler
@@ -88,7 +88,7 @@ def_irq_vector  DebugMon_Handler
 def_irq_vector  PendSV_Handler
 def_irq_vector  SysTick_Handler
 
-/* å¤–è®¾ä¸­æ–­ */
+/* ÍâÉèÖĞ¶Ï */
 def_irq_vector  WWDG_IRQHandler
 def_irq_vector  PVD_IRQHandler
 def_irq_vector  TAMP_STAMP_IRQHandler
@@ -172,7 +172,7 @@ def_irq_vector  CRYP_IRQHandler
 def_irq_vector  HASH_RNG_IRQHandler
 def_irq_vector  FPU_IRQHandler
 
-/* å‘é‡è¡¨ */
+/* ÏòÁ¿±í */
   .section  .isr_vector,"a",%progbits
   .type  g_pfnVectors, %object
 

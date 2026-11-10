@@ -1,43 +1,43 @@
 # shellcheck disable=SC2068,SC2276,SC2283,SC2285
-# è¯´æ˜: æœ¬æ–‡ä»¶æ˜¯ GNU Makefile è€Œé shell è„šæœ¬; ä»¥ä¸Š SC ç ä¸º shellcheck ä»¥ sh æ¨¡å¼
-#       è§£æ make è¯­æ³•(èµ‹å€¼/+=/é…æ–¹)æ—¶äº§ç”Ÿçš„è¯¯æŠ¥, åœ¨æ­¤ç»Ÿä¸€ç¦ç”¨ã€‚
+# ËµÃ÷: ±¾ÎÄ¼şÊÇ GNU Makefile ¶ø·Ç shell ½Å±¾; ÒÔÉÏ SC ÂëÎª shellcheck ÒÔ sh Ä£Ê½
+#       ½âÎö make Óï·¨(¸³Öµ/+=/Åä·½)Ê±²úÉúµÄÎó±¨, ÔÚ´ËÍ³Ò»½ûÓÃ¡£
 # =====================================================================
 # STM32F407VET6 Makefile  (GNU Arm Toolchain 14.2 + GNU Make)
-# Bootloader bare-metal base: copied and trimmed from WT_FreeRTOS_ESPAT_UI.
-# Core Bootloader functionality is intentionally not implemented yet.
+# Âã»ú»ù´¡¹¤³ÌÓÉÌìÆøÊ±ÖÓ¾«¼ò¶øÀ´£¬Ä£¿é½á¹¹²Î¿¼ÀÏÊ¦ Bootloader ¹¤³Ì¡£
+# µ¥ App ´®¿ÚÉı¼¶£¬ÉÈÇø 3 ±£´æ¶ÀÁ¢¹Ì¼şÃèÊöÍ·¡£
 #
-# ç”¨æ³•:
-#   make         ç¼–è¯‘, ç”Ÿæˆ build/bootloader.elf/.hex/.bin
-#   make clean   åˆ é™¤ build ç›®å½•
-#   make flash   ç”¨ ST-Link + OpenOCD ç¼–è¯‘å¹¶çƒ§å½•
+# ÓÃ·¨:
+#   make         ±àÒë, Éú³É build/bootloader.elf/.hex/.bin
+#   make clean   É¾³ı build Ä¿Â¼
+#   make flash   ÓÃ ST-Link + OpenOCD ±àÒë²¢ÉÕÂ¼
 # =====================================================================
 
-# ------- å·¥å…·é“¾(å·²åŠ å…¥ PATH) -------
+# ------- ¹¤¾ßÁ´(ÒÑ¼ÓÈë PATH) -------
 CROSS_COMPILE ?= arm-none-eabi-
 CC      := $(CROSS_COMPILE)gcc
 OBJCOPY := $(CROSS_COMPILE)objcopy
 OBJDUMP := $(CROSS_COMPILE)objdump
 SIZE    := $(CROSS_COMPILE)size
 
-# OpenOCD: ä¼˜å…ˆä½¿ç”¨ PATHï¼›å¦åˆ™è‡ªåŠ¨å‘ç° WinGet å®‰è£…çš„ xPack ç‰ˆæœ¬ã€‚
-# ä»å¯é€šè¿‡ make flash OPENOCD=/path/to/openocd è¦†ç›–ã€‚
-# Windows åŸç”Ÿ Make æ²¡æœ‰ command/cygpathï¼Œå› æ­¤ä½¿ç”¨ where å’ŒåŸç”Ÿè·¯å¾„ï¼›
-# Unix/Git Bash ç¯å¢ƒç»§ç»­ä½¿ç”¨ command -vã€‚
+# OpenOCD: ÓÅÏÈÊ¹ÓÃ PATH£»·ñÔò×Ô¶¯·¢ÏÖ WinGet °²×°µÄ xPack °æ±¾¡£
+# ÈÔ¿ÉÍ¨¹ı make flash OPENOCD=/path/to/openocd ¸²¸Ç¡£
+# Windows Ô­Éú Make Ã»ÓĞ command/cygpath£¬Òò´ËÊ¹ÓÃ where ºÍÔ­ÉúÂ·¾¶£»
+# Unix/Git Bash »·¾³¼ÌĞøÊ¹ÓÃ command -v¡£
 ifeq ($(OS),Windows_NT)
 OPENOCD ?= $(shell where openocd 2>NUL)
 else
 OPENOCD ?= $(shell command -v openocd 2>/dev/null)
 endif
 
-# Some Windows GNU Make environments do not export OS=Windows_NT.
-# If LOCALAPPDATA is available, still discover the user-local xPack install.
+# ²¿·Ö Windows GNU Make »·¾³²»»áµ¼³ö OS=Windows_NT¡£
+# Èô´æÔÚ LOCALAPPDATA£¬¼ÌĞø²éÕÒÓÃ»§Ä¿Â¼ÖĞµÄ xPack °²×°¡£
 ifeq ($(strip $(OPENOCD)),)
 ifneq ($(strip $(LOCALAPPDATA)),)
 LOCALAPPDATA_MAKE := $(subst \,/,$(LOCALAPPDATA))
 OPENOCD := $(firstword $(wildcard $(LOCALAPPDATA_MAKE)/Microsoft/WinGet/Packages/xpack-dev-tools.openocd-xpack_*/xpack-openocd-*/bin/openocd.exe))
 ifeq ($(strip $(OPENOCD)),)
-# GNU Make on this host does not expand the WinGet wildcard reliably.
-# Keep the discovered user-local install as an overrideable fallback.
+# µ±Ç°Ö÷»úµÄ GNU Make ²»ÄÜÎÈ¶¨Õ¹¿ª WinGet Â·¾¶Í¨Åä·û¡£
+# ±£ÁôÒÑÖª°²×°Â·¾¶×÷Îªºó±¸Öµ£¬ÈÔ¿ÉÍ¨¹ı²ÎÊı¸²¸Ç¡£
 OPENOCD := $(LOCALAPPDATA_MAKE)/Microsoft/WinGet/Packages/xpack-dev-tools.openocd-xpack_Microsoft.Winget.Source_8wekyb3d8bbwe/xpack-openocd-0.12.0-7/bin/openocd.exe
 endif
 endif
@@ -46,10 +46,10 @@ ifeq ($(strip $(OPENOCD)),)
 OPENOCD := openocd
 endif
 
-# ------- å®¿ä¸»ç³»ç»Ÿæ–‡ä»¶æ“ä½œ -------
-# Windows åŸç”Ÿ GNU Make å¯èƒ½æ˜¾ç¤º SHELL=sh.exeï¼Œä½†åœ¨æ‰¾ä¸åˆ° sh.exe æ—¶ä¼šæ”¹ç”± cmd.exe
-# æ‰§è¡Œé…æ–¹ï¼›Git Bash çš„ SHELL æ˜¯å¸¦ç›®å½•çš„å®é™… sh.exe è·¯å¾„ã€‚
-# å› æ­¤åŒæ—¶æ£€æŸ¥ OS å’Œ SHELL è·¯å¾„ï¼Œè€Œä¸æ˜¯ä»…æ£€æŸ¥ OS=Windows_NTã€‚
+# ------- ËŞÖ÷ÏµÍ³ÎÄ¼ş²Ù×÷ -------
+# Windows Ô­Éú GNU Make ¿ÉÄÜÏÔÊ¾ SHELL=sh.exe£¬µ«ÔÚÕÒ²»µ½ sh.exe Ê±»á¸ÄÓÉ cmd.exe
+# Ö´ĞĞÅä·½£»Git Bash µÄ SHELL ÊÇ´øÄ¿Â¼µÄÊµ¼Ê sh.exe Â·¾¶¡£
+# Òò´ËÍ¬Ê±¼ì²é OS ºÍ SHELL Â·¾¶£¬¶ø²»ÊÇ½ö¼ì²é OS=Windows_NT¡£
 ifeq ($(OS),Windows_NT)
 ifneq ($(findstring /,$(SHELL)),)
 HOST_SHELL := sh
@@ -69,79 +69,79 @@ make-dir = mkdir -p "$1"
 remove-dir = rm -rf "$1"
 endif
 
-# ------- ç›®æ ‡ -------
+# ------- Ä¿±ê -------
 TARGET  := bootloader
 BUILD   := build
 
-# ------- èŠ¯ç‰‡ä¸ç¼–è¯‘é€‰é¡¹ -------
+# ------- Ğ¾Æ¬Óë±àÒëÑ¡Ïî -------
 MCU     := cortex-m4
 DEFS    := -DSTM32F40_41xxx -DUSE_STDPERIPH_DRIVER -DHSE_VALUE=8000000
 CPU     := -mcpu=$(MCU) -mthumb
 FPU     := -mfpu=fpv4-sp-d16 -mfloat-abi=hard
-OPT     := -Og -g                 # -g ç”Ÿæˆè°ƒè¯•ä¿¡æ¯(å•æ­¥/çœ‹å˜é‡å¿…éœ€); å‘å¸ƒå¯æ”¹æˆ -O2
-# -Wno-* ç³»åˆ—: å…¼å®¹æ•™ç¨‹ä»£ç çš„å®½æ¾å†™æ³•(ä¸ Keil è¡Œä¸ºä¸€è‡´), å¦åˆ™ GCC 14 ä¼šæŠ¥é”™
+OPT     := -Og -g                 # -g Éú³Éµ÷ÊÔĞÅÏ¢(µ¥²½/¿´±äÁ¿±ØĞè); ·¢²¼¿É¸Ä³É -O2
+# -Wno-* ÏµÁĞ: ¼æÈİ½Ì³Ì´úÂëµÄ¿íËÉĞ´·¨(Óë Keil ĞĞÎªÒ»ÖÂ), ·ñÔò GCC 14 »á±¨´í
 CFLAGS  := $(CPU) $(FPU) $(OPT) $(DEFS) -std=gnu99 -Wall -ffunction-sections -fdata-sections -MMD -MP \
            -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Wno-int-conversion
 
-# ------- é“¾æ¥é€‰é¡¹ -------
+# ------- Á´½ÓÑ¡Ïî -------
 LDSCRIPT := stm32f407vetx.ld
 LDFLAGS  := $(CPU) $(FPU) -T $(LDSCRIPT) --specs=nano.specs --specs=nosys.specs \
             -nostartfiles -Wl,--gc-sections -Wl,-Map=$(BUILD)/$(TARGET).map \
             -Wl,-e,Reset_Handler
 
-# ------- é€’å½’æ”¶é›† .c æ–‡ä»¶ -------
+# ------- µİ¹éÊÕ¼¯ .c ÎÄ¼ş -------
 rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 
 C_SOURCES := $(call rwildcard,app/,*.c) \
              $(call rwildcard,driver/,*.c) \
+             $(call rwildcard,third_lib/,*.c) \
              $(call rwildcard,firmware/cmsis/device/,*.c) \
              $(call rwildcard,firmware/driver/src/,*.c)
 
-ASM_SOURCES := firmware/cmsis/device/startup_stm32f40_41xxx_gcc.s app/app_handoff.s
+ASM_SOURCES := firmware/cmsis/device/startup_stm32f40_41xxx_gcc.s app/jumpapp.s
 OBJS        := $(addprefix $(BUILD)/, $(C_SOURCES:.c=.o) $(ASM_SOURCES:.s=.o))
 
-# ------- å¤´æ–‡ä»¶è·¯å¾„ -------
-INCDIRS := . app driver firmware/cmsis/core firmware/cmsis/device firmware/driver/inc \
-           $(wildcard driver/*/)
+# ------- Í·ÎÄ¼şÂ·¾¶ -------
+INCDIRS := . app driver third_lib/crc firmware/cmsis/core firmware/cmsis/device firmware/driver/inc
 INCFLAGS := $(addprefix -I, $(INCDIRS))
 
 .PHONY: all clean flash compiledb
 
 all: $(BUILD)/$(TARGET).elf $(BUILD)/$(TARGET).hex $(BUILD)/$(TARGET).bin
 
-# ç¼–è¯‘ C æ–‡ä»¶
+# ±àÒë C ÎÄ¼ş
 $(BUILD)/%.o: %.c
 	@$(call make-dir,$(@D))
 	$(CC) $(CFLAGS) $(INCFLAGS) -c $< -o $@
 
-# ç¼–è¯‘æ±‡ç¼–æ–‡ä»¶
+# ±àÒë»ã±àÎÄ¼ş
 $(BUILD)/%.o: %.s
 	@$(call make-dir,$(@D))
 	$(CC) $(CFLAGS) $(INCFLAGS) -x assembler-with-cpp -c $< -o $@
 
-# é“¾æ¥
-$(BUILD)/$(TARGET).elf: $(OBJS)
-	$(CC) $(LDFLAGS) $^ -o $@
+# Á´½Ó
+$(BUILD)/$(TARGET).elf: $(OBJS) $(LDSCRIPT)
+	$(CC) $(LDFLAGS) $(OBJS) -o $@
 	$(SIZE) $@
 
-# ç”Ÿæˆ HEX / BIN
+# Éú³É HEX / BIN
 $(BUILD)/$(TARGET).hex: $(BUILD)/$(TARGET).elf
 	$(OBJCOPY) -O ihex $< $@
 
 $(BUILD)/$(TARGET).bin: $(BUILD)/$(TARGET).elf
 	$(OBJCOPY) -O binary $< $@
 
-# æ¸…ç†
+# ÇåÀí
 clean:
 	@$(call remove-dir,$(BUILD))
 
-# çƒ§å½• (ST-Link SWD); å¦‚æœæ˜¯ J-Link, æŠŠ interface/stlink.cfg æ¢æˆ interface/jlink.cfg
+# ÉÕÂ¼ (ST-Link SWD); Èç¹ûÊÇ J-Link, °Ñ interface/stlink.cfg »»³É interface/jlink.cfg
 flash: all
 	"$(OPENOCD)" -f interface/stlink.cfg -c "transport select swd" -f target/stm32f4x.cfg -c "program $(BUILD)/$(TARGET).hex reset exit"
 
-# ç”Ÿæˆ clangd éœ€è¦çš„ compile_commands.json (æ–°å¢æºæ–‡ä»¶åè¿è¡Œä¸€æ¬¡å³å¯)
+# Éú³É clangd ĞèÒªµÄ compile_commands.json (ĞÂÔöÔ´ÎÄ¼şºóÔËĞĞÒ»´Î¼´¿É)
 compiledb:
 	python -m compiledb -f make -B -n --no-print-directory
 
-# Recompile affected source files when headers change.
+# Í·ÎÄ¼ş±ä»¯Ê±ÖØĞÂ±àÒëÊÜÓ°ÏìµÄÔ´ÎÄ¼ş¡£
 -include $(OBJS:.o=.d)

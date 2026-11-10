@@ -9,6 +9,7 @@
 
 app_handoff:
     msr msp, r0
+    cpsie i
     bx  r1
 
 .size app_handoff, .-app_handoff
