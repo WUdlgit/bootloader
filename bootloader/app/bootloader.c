@@ -5,6 +5,7 @@
 #include <string.h>
 #include <errno.h>
 #include "bootloader.h"
+#include "boot_entry.h"
 #include "magic_header.h"
 #include "stm32_flash.h"
 #include "bl_usart.h"
@@ -201,16 +202,58 @@ static void start_app(void)
 
 void bootloader_main(void)
 {
+    boot_entry_init();
+    bool requested = boot_entry_take_request();
+    bool held = boot_entry_key_pressed();
+    bool valid = magic_header_validate();
+    int pending = -1;
     printf("[BOOT] single App serial IAP\r\n");
-    printf("[BOOT] App %s\r\n", magic_header_validate() ? "valid" : "invalid");
+    printf("[BOOT] App %s\r\n", valid ? "valid" : "invalid");
+
+    if (valid && !requested && !held)
+    {
+        bl_usart_printf("[BOOT] AUTOBOOT 1000\r\n");
+        uint32_t start = tim_delay_get_tick();
+        bool stay = false;
+        while ((uint32_t)(tim_delay_get_tick() - start) < 1000U)
+        {
+            if (boot_entry_key_pressed())
+            {
+                stay = true;
+                break;
+            }
+            if (USART_GetFlagStatus(USART3, USART_FLAG_RXNE) != RESET)
+            {
+                char data = (char)USART_ReceiveData(USART3);
+                if (data == '?' || data == 'u' || data == 'g')
+                {
+                    pending = data;
+                    stay = true;
+                    break;
+                }
+            }
+        }
+        if (!stay)
+            start_app();
+    }
+    printf("[BOOT] upgrade mode%s\r\n", requested ? " (App request)" : "");
+    GPIO_ResetBits(GPIOB, GPIO_Pin_0);
     bl_usart_printf("[BOOT] READY\r\n");
 
     while (1)
     {
-        if (USART_GetFlagStatus(USART3, USART_FLAG_RXNE) == RESET)
-            continue;
-
-        char data = (char)USART_ReceiveData(USART3);
+        char data;
+        if (pending >= 0)
+        {
+            data = (char)pending;
+            pending = -1;
+        }
+        else
+        {
+            if (USART_GetFlagStatus(USART3, USART_FLAG_RXNE) == RESET)
+                continue;
+            data = (char)USART_ReceiveData(USART3);
+        }
         if (data == '?')
             bl_usart_printf("[BOOT] READY\r\n");
         else if (data == 'g')
