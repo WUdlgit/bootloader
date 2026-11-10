@@ -69,9 +69,23 @@ bool stm32_flash_program(uint32_t address, const uint8_t *buf, uint32_t block_le
     FLASH_Unlock();
     clear_flash_error();
     FLASH_Status status = FLASH_COMPLETE;
-    for (uint32_t i = 0; i < block_length; i++)
+    uint32_t offset = 0;
+    while (offset < block_length)
     {
-        status = FLASH_ProgramByte(address + i, buf[i]);
+        if (((address + offset) & 3U) == 0 && block_length - offset >= 4U)
+        {
+            uint32_t word = (uint32_t)buf[offset] |
+                            ((uint32_t)buf[offset + 1] << 8) |
+                            ((uint32_t)buf[offset + 2] << 16) |
+                            ((uint32_t)buf[offset + 3] << 24);
+            status = FLASH_ProgramWord(address + offset, word);
+            offset += 4;
+        }
+        else
+        {
+            status = FLASH_ProgramByte(address + offset, buf[offset]);
+            offset++;
+        }
         if (status != FLASH_COMPLETE)
             break;
     }

@@ -59,6 +59,19 @@ const { crc32 } = require('node:zlib');
             assert.equal(c.magic_header_validate(), 0, 'Corruption must block boot');
         });
     }
+    for (let offset = 0; offset < 4; offset++) {
+        for (let length = 1; length <= 9; length++) {
+            test(`word programming alignment ${offset} length ${length}`, () => {
+                for (let i = 0; i < length; i++) memory[BUF + 1 + i] = 0xa0 + i;
+                check(c.stm32_flash_erase(32));
+                check(c.stm32_flash_program(APP + offset, BUF + 1, length));
+                assert.deepEqual(memory.subarray(APP + offset, APP + offset + length),
+                    memory.subarray(BUF + 1, BUF + 1 + length));
+                if (offset) assert.equal(memory[APP + offset - 1], 0xff);
+                assert.equal(memory[APP + offset + length], 0xff);
+            });
+        }
+    }
     test('wrong CRC cannot commit', () => {
         const crc = makeImage(1025);
         writeImage(1025);
